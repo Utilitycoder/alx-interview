@@ -1,43 +1,21 @@
-#!/usr/bin/node
+#!/usr/bin/env node
 
-const request = require('request');
+const util = require('util');
+const request = util.promisify(require('request'));
+const filmID = process.argv[2];
 
-const movieId = process.argv[2]; // Retrieve the Movie ID from command line argument
+async function getCharacters (filmId) {
+  const endpoint = 'https://swapi-api.hbtn.io/api/films/' + filmId;
+  let response = await (await request(endpoint)).body;
+  response = JSON.parse(response);
+  const characters = response.characters;
 
-if (!movieId) {
-  console.log('Please provide a Movie ID as a command line argument.');
-  process.exit(1);
+  for (let i = 0; i < characters.length; i++) {
+    const urlCharacter = characters[i];
+    let character = await (await request(urlCharacter)).body;
+    character = JSON.parse(character);
+    console.log(character.name);
+  }
 }
 
-const apiUrl = `https://swapi-api.alx-tools.com/films/${movieId}`;
-
-// Function to fetch characters from the movie
-function getCharactersFromMovie(movieUrl) {
-  request(movieUrl, (error, response, body) => {
-    if (!error && response.statusCode === 200) {
-      const movieData = JSON.parse(body);
-      const characterUrls = movieData.characters;
-
-      // Function to fetch character names and print them
-      function fetchAndPrintCharacterNames(urls, index = 0) {
-        if (index < urls.length) {
-          request(urls[index], (charError, charResponse, charBody) => {
-            if (!charError && charResponse.statusCode === 200) {
-              const characterData = JSON.parse(charBody);
-              console.log(characterData.name);
-              fetchAndPrintCharacterNames(urls, index + 1);
-            } else {
-              console.log('Error fetching character data.');
-            }
-          });
-        }
-      }
-
-      fetchAndPrintCharacterNames(characterUrls);
-    } else {
-      console.log('Error fetching movie data.');
-    }
-  });
-}
-
-getCharactersFromMovie(apiUrl);
+getCharacters(filmID);
